@@ -6,8 +6,6 @@ namespace OnlineStatusLight.Core.Services
     {
         Task SwitchOn(SonoffLedType led, bool switchOffOthers = true);
         Task SwitchOff(SonoffLedType led, bool switchOffOthers = true);
-        Task BlinkOn(SonoffLedType led, bool switchOffOthers = true);
-        Task BlinkOff(SonoffLedType led, bool switchOffOthers = true);
         Task SwitchOffAll(SonoffLedType? ignore = null);
         Task<SonoffConfigurationInfo> GetConfiguration(SonoffLedType led);
     }

@@ -44,7 +44,7 @@ namespace OnlineStatusLight.Forms
             _notifyIcon.Visible = true;
 
             // Handle the DoubleClick event to activate the form.
-            _notifyIcon.DoubleClick += new EventHandler(this.NotifyIcon_DoubleClick);
+            // _notifyIcon.DoubleClick += new EventHandler(this.NotifyIcon_DoubleClick);
         }
 
         protected override void Dispose(bool disposing)
@@ -59,9 +59,6 @@ namespace OnlineStatusLight.Forms
 
         private void NotifyIcon_DoubleClick(object Sender, EventArgs e)
         {
-            // disable any screen for now
-            return;
-
             // Show the form when the user double clicks on the notify icon.
             if (this.MainForm == null)
             {
@@ -87,6 +84,7 @@ namespace OnlineStatusLight.Forms
             _sync.Dispose();
 
             app.Application.Exit();
+            Environment.Exit(1);
         }
     }
 }

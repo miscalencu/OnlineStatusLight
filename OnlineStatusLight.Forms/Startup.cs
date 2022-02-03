@@ -6,6 +6,7 @@ using NLog.Extensions.Logging;
 using OnlineStatusLight.Application;
 using OnlineStatusLight.Core.Services;
 using Polly;
+using app = System.Windows.Forms;
 
 namespace OnlineStatusLight.Forms
 {
@@ -26,7 +27,7 @@ namespace OnlineStatusLight.Forms
 
                     // configure services
                     services
-                        .AddScoped<IMicrosoftTeamsService, MicrosoftTeamsService>()
+                        .AddSingleton<IMicrosoftTeamsService, MicrosoftTeamsService>()
                         .AddSingleton<ISonoffBasicR3Service, SonoffBasicR3Service>()
                         .AddSingleton<SyncLightService>()
                         .AddHostedService<SyncLightService>();
@@ -89,6 +90,7 @@ namespace OnlineStatusLight.Forms
 
             MessageBox.Show("Exiting because an error occured! Please check logs for error details.");
 
+            app.Application.Exit();
             Environment.Exit(1);
         }
     }

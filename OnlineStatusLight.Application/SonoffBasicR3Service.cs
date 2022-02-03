@@ -33,26 +33,6 @@ namespace OnlineStatusLight.Application
             _logger = logger;
         }
 
-        public async Task BlinkOff(SonoffLedType led, bool switchOffOthers = true)
-        {
-            await EnsureDeviceIdIsLoaded(led);
-            if (switchOffOthers)
-            {
-                await SwitchOffAll();
-            }
-        }
-
-        public async Task BlinkOn(SonoffLedType led, bool switchOffOthers = true)
-        {
-            await EnsureDeviceIdIsLoaded(led);
-            if (switchOffOthers)
-            {
-                await SwitchOffAll(led);
-            }
-
-            throw new NotImplementedException();
-        }
-
         public async Task SwitchOff(SonoffLedType led, bool switchOffOthers = true)
         {
             await EnsureDeviceIdIsLoaded(led);
@@ -100,7 +80,8 @@ namespace OnlineStatusLight.Application
                 deviceid = this.Leds[led].DeviceId,
                 data = new
                 {
-                    Switch = "on"
+                    Switch = "on",
+                    Pulse = "off"
                 }
             });
             response.HttpResponse.EnsureSuccessStatusCode();

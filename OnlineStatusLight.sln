@@ -7,7 +7,12 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OnlineStatusLight.Forms", "
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OnlineStatusLight.Core", "OnlineStatusLight.Core\OnlineStatusLight.Core.csproj", "{21D7F1B2-8B66-4C08-8417-5C92F5861358}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OnlineStatusLight.Application", "OnlineStatusLight.Application\OnlineStatusLight.Application.csproj", "{B49009ED-06B5-4D6A-A34E-2C4F723A44D8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OnlineStatusLight.Application", "OnlineStatusLight.Application\OnlineStatusLight.Application.csproj", "{B49009ED-06B5-4D6A-A34E-2C4F723A44D8}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{42312ED1-3E34-41C6-8975-A850EA699455}"
+	ProjectSection(SolutionItems) = preProject
+		README.md = README.md
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

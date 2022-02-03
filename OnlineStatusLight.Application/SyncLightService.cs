@@ -31,10 +31,8 @@ namespace OnlineStatusLight.Application
                     await _sonoffBasicR3Service.SwitchOn(SonoffLedType.Red);
                     break;
                 case MicrosoftTeamsStatus.DoNotDisturb:
-                    await _sonoffBasicR3Service.BlinkOn(SonoffLedType.Red);
-                    break;
-                case MicrosoftTeamsStatus.Away:
-                    await _sonoffBasicR3Service.BlinkOn(SonoffLedType.Green);
+                    await _sonoffBasicR3Service.SwitchOn(SonoffLedType.Red, false);
+                    await _sonoffBasicR3Service.SwitchOn(SonoffLedType.Green, false);
                     break;
                 default:
                     await _sonoffBasicR3Service.SwitchOffAll();
