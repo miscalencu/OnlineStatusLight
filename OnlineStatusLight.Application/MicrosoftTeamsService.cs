@@ -46,34 +46,44 @@ namespace OnlineStatusLight.Application
                             {
                                 var info = line.Substring(posFrom, posTo - posFrom);
                                 var status = info.Split(" -> ").Last();
+                                var newStatus = _lastStatus;
+
                                 switch (status)
                                 {
                                     case "Available":
-                                        _lastStatus = MicrosoftTeamsStatus.Available;
+                                        newStatus = MicrosoftTeamsStatus.Available;
                                         break;
                                     case "Away":
-                                        _lastStatus = MicrosoftTeamsStatus.Away;
+                                        newStatus = MicrosoftTeamsStatus.Away;
                                         break;
                                     case "Busy":
                                     case "OnThePhone":
-                                        _lastStatus = MicrosoftTeamsStatus.Busy;
+                                        newStatus = MicrosoftTeamsStatus.Busy;
                                         break;
                                     case "DoNotDisturb":
-                                        _lastStatus = MicrosoftTeamsStatus.DoNotDisturb;
+                                        newStatus = MicrosoftTeamsStatus.DoNotDisturb;
                                         break;
                                     case "BeRightBack":
-                                        _lastStatus = MicrosoftTeamsStatus.Away;
+                                        newStatus = MicrosoftTeamsStatus.Away;
                                         break;
                                     case "Offline":
-                                        _lastStatus = MicrosoftTeamsStatus.Offline;
+                                        newStatus = MicrosoftTeamsStatus.Offline;
+                                        break;
+                                    case "NewActivity":
+                                        // ignore this - happens where there is a new activity: Message, Like/Action, File Upload
+                                        // this is not a real status change, just shows the bell in the icon
                                         break;
                                     default:
                                         _logger.LogWarning($"MS Teams status unknown: {status}");
-                                        _lastStatus = MicrosoftTeamsStatus.Unknown;
+                                        newStatus = MicrosoftTeamsStatus.Unknown;
                                         break;
                                 }
 
-                                _logger.LogInformation($"MS Teams status set to {_lastStatus}");
+                                if (newStatus != _lastStatus)
+                                {
+                                    _lastStatus = newStatus;
+                                    _logger.LogInformation($"MS Teams status set to {_lastStatus}");
+                                }
                                 break;
                             }
                         }
