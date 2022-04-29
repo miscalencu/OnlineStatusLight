@@ -61,6 +61,7 @@ namespace OnlineStatusLight.Application
                                         newStatus = MicrosoftTeamsStatus.Busy;
                                         break;
                                     case "DoNotDisturb":
+                                    case "Presenting":
                                         newStatus = MicrosoftTeamsStatus.DoNotDisturb;
                                         break;
                                     case "BeRightBack":
