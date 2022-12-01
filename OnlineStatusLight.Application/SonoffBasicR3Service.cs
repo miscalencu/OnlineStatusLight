@@ -5,7 +5,7 @@ using OnlineStatusLight.Core.Services;
 
 namespace OnlineStatusLight.Application
 {
-    public class SonoffBasicR3Service : ISonoffBasicR3Service
+    public class SonoffBasicR3Service : ISonoffBasicR3Service, ILightService
     {
         private readonly ILogger<SonoffBasicR3Service> _logger;
 
@@ -120,6 +120,37 @@ namespace OnlineStatusLight.Application
                 Leds[led].DeviceId = conf.Data.DeviceId;
                 // Leds[led].Status = conf.Data.Switch == "on" ? SonoffLedStatus.On: SonoffLedStatus.Off;
             }
+        }
+
+        public async Task SetState(MicrosoftTeamsStatus status)
+        {
+            switch (status)
+            {
+                case MicrosoftTeamsStatus.Available:
+                    await SwitchOn(SonoffLedType.Green);
+                    break;
+                case MicrosoftTeamsStatus.Busy:
+                    await SwitchOn(SonoffLedType.Red);
+                    break;
+                case MicrosoftTeamsStatus.DoNotDisturb:
+                    await SwitchOn(SonoffLedType.Red, false);
+                    await SwitchOn(SonoffLedType.Green, false);
+                    break;
+                default:
+                    await SwitchOffAll();
+                    break;
+            }
+        }
+
+        public void Start()
+        {
+            _logger.LogInformation($"Starting SonoffBasicR3Service");
+        }
+
+        public void End()
+        {
+             _logger.LogInformation($"Ending SonoffBasicR3Service");
+            SwitchOffAll().GetAwaiter().GetResult();
         }
     }
 }

@@ -25,10 +25,11 @@ namespace OnlineStatusLight.Forms
                         .AddJsonFile(Path.GetFullPath("appsettings.json"), true, true)
                         .Build();
 
+                    var lightService = Type.GetType(ConfigurationRoot!["lightservice"]) ?? typeof(SonoffBasicR3Service);
                     // configure services
                     services
+                        .AddSingleton(typeof(ILightService), lightService)
                         .AddSingleton<IMicrosoftTeamsService, MicrosoftTeamsService>()
-                        .AddSingleton<ISonoffBasicR3Service, SonoffBasicR3Service>()
                         .AddSingleton<SyncLightService>()
                         .AddHostedService<SyncLightService>();
 
@@ -60,6 +61,11 @@ namespace OnlineStatusLight.Forms
 
         public static IServiceCollection ConfigureHttpClients(IServiceCollection services, IConfiguration configuration)
         {
+            if(configuration["sonoff"] == null) 
+            {
+                return services;
+            }
+
             services.AddHttpClient("sonoffRedLedApi", c =>
             {
                 c!.BaseAddress = new Uri($"http://{configuration!["sonoff:red:ip"]}:8081/zeroconf/");
