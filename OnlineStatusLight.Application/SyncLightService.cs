@@ -7,41 +7,27 @@ namespace OnlineStatusLight.Application
     public class SyncLightService : IHostedService, IDisposable
     {
         private readonly IMicrosoftTeamsService _microsoftTeamsService;
-        private readonly ISonoffBasicR3Service _sonoffBasicR3Service;
+        private readonly ILightService _lightService;
 
         private Timer _timer;
 
         public SyncLightService(
             IMicrosoftTeamsService microsoftTeamsService, 
-            ISonoffBasicR3Service sonoffBasicR3Service)
+            ILightService lightService)
         {
             _microsoftTeamsService = microsoftTeamsService;
-            _sonoffBasicR3Service = sonoffBasicR3Service;
+            _lightService = lightService;
         }
 
         public async Task Sync()
         {
             var status = _microsoftTeamsService.GetCurrentStatus();
-            switch (status)
-            {
-                case MicrosoftTeamsStatus.Available:
-                    await _sonoffBasicR3Service.SwitchOn(SonoffLedType.Green);
-                    break;
-                case MicrosoftTeamsStatus.Busy:
-                    await _sonoffBasicR3Service.SwitchOn(SonoffLedType.Red);
-                    break;
-                case MicrosoftTeamsStatus.DoNotDisturb:
-                    await _sonoffBasicR3Service.SwitchOn(SonoffLedType.Red, false);
-                    await _sonoffBasicR3Service.SwitchOn(SonoffLedType.Green, false);
-                    break;
-                default:
-                    await _sonoffBasicR3Service.SwitchOffAll();
-                    break;
-            }
+            await _lightService.SetState(status);
         }
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
+            _lightService.Start();
             _timer = new Timer(this.ExecuteSync, null, TimeSpan.Zero, TimeSpan.FromSeconds(_microsoftTeamsService.PoolingInterval));
             return Task.CompletedTask;
         }
@@ -64,7 +50,7 @@ namespace OnlineStatusLight.Application
                 _timer.Dispose();
                 _timer = null;
             }
-            _sonoffBasicR3Service.SwitchOffAll().GetAwaiter().GetResult();
+            _lightService.End();
         }
     }
 }

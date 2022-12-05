@@ -8,19 +8,19 @@ namespace OnlineStatusLight.Application
 {
     public class MicrosoftTeamsService : IMicrosoftTeamsService
     {
-        private readonly ILogger<SonoffBasicR3Service> _logger;
+        private readonly ILogger<MicrosoftTeamsService> _logger;
         private MicrosoftTeamsStatus _lastStatus = MicrosoftTeamsStatus.Unknown;
         private DateTime _fileLastUpdated = DateTime.MinValue;
 
         public int PoolingInterval { get; set; }
         public string LogsFilePath { get; set; }
 
-        public MicrosoftTeamsService(IConfiguration configuration, ILogger<SonoffBasicR3Service> logger)
+        public MicrosoftTeamsService(IConfiguration configuration, ILogger<MicrosoftTeamsService> logger)
         {
             _logger = logger;
 
             this.PoolingInterval = Convert.ToInt32(configuration["msteams:interval"]);
-            this.LogsFilePath = Convert.ToString(configuration["msteams:logfile"]);
+            this.LogsFilePath = Environment.ExpandEnvironmentVariables(Convert.ToString(configuration["msteams:logfile"]));
         }
 
         public MicrosoftTeamsStatus GetCurrentStatus()

@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\OnlineStatusLight.Application\OnlineStatusLight.Application.csproj" />
+    <ProjectReference Include="..\OnlineStatusLight.Application.Razer\OnlineStatusLight.Application.Razer.csproj" />
   </ItemGroup>
 
   <ItemGroup>
