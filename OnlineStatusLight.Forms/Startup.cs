@@ -42,8 +42,9 @@ namespace OnlineStatusLight.Forms
                         })
                         .Configure<LoggerFilterOptions>(options => options.MinLevel = LogLevel.Trace);
 
-                    // add http clients
-                    services = ConfigureHttpClients(services, ConfigurationRoot);
+                    // add sonoff http clients
+                    if (lightService == typeof(SonoffBasicR3Service))
+                        services = ConfigureSonoffHttpClients(services, ConfigurationRoot);
                 });
         }
 
@@ -59,13 +60,8 @@ namespace OnlineStatusLight.Forms
             _sync.Dispose();
         }
 
-        public static IServiceCollection ConfigureHttpClients(IServiceCollection services, IConfiguration configuration)
+        public static IServiceCollection ConfigureSonoffHttpClients(IServiceCollection services, IConfiguration configuration)
         {
-            if(configuration["sonoff"] == null) 
-            {
-                return services;
-            }
-
             services.AddHttpClient("sonoffRedLedApi", c =>
             {
                 c!.BaseAddress = new Uri($"http://{configuration!["sonoff:red:ip"]}:8081/zeroconf/");
