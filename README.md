@@ -11,6 +11,9 @@
 Currently, there are two services supported: [Sonoff](#sonoff) and [Razer](#razer).
 
 ## Sonoff
+
+Details of the hardware implementation here: https://www.linkedin.com/feed/update/urn:li:activity:6895151178066579456/.
+
 - Red light turns on for Busy.
 - Green light turns on for Available.
 - Both lights turn on for Do Not Disturb (Presenting). Initial idea was to blink the red light but the switch makes a noise every time it is activated so I had to give up that idea.
