@@ -35,7 +35,7 @@ Additional config:
 ```
 
 ## Razer
-- Red light turns on for Busy and Do Not Disturb (Presenting).
+- Red light turns on for Busy, In a meeting and Do Not Disturb (Presenting).
 - Green light turns on for Available.
 - Yellow light turns on for Away
 - Purple light turns on for OutOfOffice

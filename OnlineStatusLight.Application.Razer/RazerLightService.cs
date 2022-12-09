@@ -40,6 +40,7 @@ namespace OnlineStatusLight.Application.Razer
                     break;
                 case MicrosoftTeamsStatus.Busy:
                 case MicrosoftTeamsStatus.DoNotDisturb:
+                case MicrosoftTeamsStatus.InAMeeting:
                     await SetTargetedDeviceColor(Colore.Data.Color.Red);
                     break;
                 default:

@@ -9,6 +9,7 @@
         Away,
         Offline,
         Unknown,
-        OutOfOffice
+        OutOfOffice,
+        InAMeeting
     }
 }
