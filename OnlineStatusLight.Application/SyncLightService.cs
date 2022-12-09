@@ -11,6 +11,8 @@ namespace OnlineStatusLight.Application
 
         private Timer _timer;
 
+        public event EventHandler<MicrosoftTeamsStatus> StateChanged; 
+
         public SyncLightService(
             IMicrosoftTeamsService microsoftTeamsService, 
             ILightService lightService)
@@ -22,6 +24,7 @@ namespace OnlineStatusLight.Application
         public async Task Sync()
         {
             var status = _microsoftTeamsService.GetCurrentStatus();
+            StateChanged?.Invoke(this, status);
             await _lightService.SetState(status);
         }
 

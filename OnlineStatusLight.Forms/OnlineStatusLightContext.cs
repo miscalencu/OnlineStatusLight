@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using OnlineStatusLight.Application;
+using OnlineStatusLight.Core.Models;
 using OnlineStatusLight.Forms.Properties;
 using System.ComponentModel;
 using app = System.Windows.Forms;
@@ -11,10 +12,12 @@ namespace OnlineStatusLight.Forms
         private readonly NotifyIcon _notifyIcon;
         private readonly ContextMenuStrip _contextMenu;
         private readonly ToolStripMenuItem _menuItem;
+        private readonly SyncLightService _sync;
         private readonly IContainer _components;
 
-        public OnlineStatusLightContext()
+        public OnlineStatusLightContext(SyncLightService sync)
         {
+            this._sync = sync;
             this._components = new Container();
             this._contextMenu = new ContextMenuStrip();
             this._menuItem = new ToolStripMenuItem();
@@ -45,6 +48,13 @@ namespace OnlineStatusLight.Forms
 
             // Handle the DoubleClick event to activate the form.
             // _notifyIcon.DoubleClick += new EventHandler(this.NotifyIcon_DoubleClick);
+
+            _sync.StateChanged += StateChanged;
+        }
+
+        private void StateChanged(object? sender, MicrosoftTeamsStatus status)
+        {
+            _notifyIcon.Text = $"{Resources.AppName} ({status})";
         }
 
         protected override void Dispose(bool disposing)
@@ -79,8 +89,6 @@ namespace OnlineStatusLight.Forms
         {
             // Hide tray icon, otherwise it will remain shown until user mouses over it
             _notifyIcon.Visible = false;
-
-            var _sync = Startup.AppHost.Services.GetRequiredService<SyncLightService>();
             _sync.Dispose();
 
             app.Application.Exit();

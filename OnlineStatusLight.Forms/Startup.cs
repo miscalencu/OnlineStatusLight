@@ -24,14 +24,14 @@ namespace OnlineStatusLight.Forms
                     ConfigurationRoot = new ConfigurationBuilder()
                         .AddJsonFile(Path.GetFullPath("appsettings.json"), true, true)
                         .Build();
-
+                        
                     var lightService = Type.GetType(ConfigurationRoot!["lightservice"]) ?? typeof(SonoffBasicR3Service);
                     // configure services
                     services
                         .AddSingleton(typeof(ILightService), lightService)
                         .AddSingleton<IMicrosoftTeamsService, MicrosoftTeamsService>()
                         .AddSingleton<SyncLightService>()
-                        .AddHostedService<SyncLightService>();
+                        .AddHostedService<SyncLightService>(p => p.GetRequiredService<SyncLightService>());
 
                     // configure logger
                     services

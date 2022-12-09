@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Hosting;
 using NLog;
+using OnlineStatusLight.Application;
 using app = System.Windows.Forms;
 
 namespace OnlineStatusLight.Forms
@@ -14,8 +15,8 @@ namespace OnlineStatusLight.Forms
 
             Startup.AppHost = host;
             Startup.SetupErrorLogger();
-
-            app.Application.Run(new OnlineStatusLightContext());
+            var service = Startup.AppHost.Services.GetService(typeof(SyncLightService)) as SyncLightService;
+            app.Application.Run(new OnlineStatusLightContext(service));
 
             LogManager.Flush();
         }
