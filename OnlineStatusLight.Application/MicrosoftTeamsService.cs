@@ -74,6 +74,9 @@ namespace OnlineStatusLight.Application
                                         // ignore this - happens where there is a new activity: Message, Like/Action, File Upload
                                         // this is not a real status change, just shows the bell in the icon
                                         break;
+                                    case "InAMeeting":
+                                        newStatus = MicrosoftTeamsStatus.InAMeeting;
+                                        break;
                                     default:
                                         _logger.LogWarning($"MS Teams status unknown: {status}");
                                         newStatus = MicrosoftTeamsStatus.Unknown;
