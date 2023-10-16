@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using OnlineStatusLight.Application.Extensions;
 using OnlineStatusLight.Core.Models;
 using OnlineStatusLight.Core.Services;
@@ -8,11 +9,15 @@ namespace OnlineStatusLight.Application
     public class SonoffBasicR3Service : ISonoffBasicR3Service, ILightService
     {
         private readonly ILogger<SonoffBasicR3Service> _logger;
+        private readonly IConfiguration _configuration;
 
         public Dictionary<SonoffLedType, SonoffLedInfo> Leds { get; set; } = new Dictionary<SonoffLedType, SonoffLedInfo>();
 
         // load statuses and device ids for all leds
-        public SonoffBasicR3Service(IHttpClientFactory httpClientFactory, ILogger<SonoffBasicR3Service> logger)
+        public SonoffBasicR3Service(
+            IHttpClientFactory httpClientFactory, 
+            ILogger<SonoffBasicR3Service> logger,
+            IConfiguration configuration)
         {
             // add green led
             Leds.Add(SonoffLedType.Green, new SonoffLedInfo()
@@ -31,6 +36,7 @@ namespace OnlineStatusLight.Application
             });
 
             _logger = logger;
+            _configuration = configuration;
         }
 
         public async Task SwitchOff(SonoffLedType led, bool switchOffOthers = true)
@@ -101,11 +107,28 @@ namespace OnlineStatusLight.Application
 
         public async Task<SonoffConfigurationInfo> GetConfiguration(SonoffLedType led)
         {
-            var response = await this.Leds[led].HttpAPIClient.PostJsonAsync<SonoffConfigurationInfo>("info", new
+            var version = 1.0f;
+            if (float.TryParse(_configuration["sonoff:version"], out float configVersion))
+                version = configVersion;
+
+            dynamic payload = new
             {
                 deviceid = "",
                 data = new { }
-            });
+            };
+
+            if (version > 3.5f)
+            {
+                payload = new
+                {
+                    data = new
+                    {
+                        deviceid = ""
+                    }
+                };
+            }
+
+            var response = await this.Leds[led].HttpAPIClient.PostJsonAsync<SonoffConfigurationInfo>("info", (object)payload);
 
             response.HttpResponse.EnsureSuccessStatusCode();
 
@@ -118,7 +141,6 @@ namespace OnlineStatusLight.Application
             {
                 var conf = await GetConfiguration(led);
                 Leds[led].DeviceId = conf.Data.DeviceId;
-                // Leds[led].Status = conf.Data.Switch == "on" ? SonoffLedStatus.On: SonoffLedStatus.Off;
             }
         }
 
