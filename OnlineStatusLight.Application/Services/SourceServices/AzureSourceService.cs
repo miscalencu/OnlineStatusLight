@@ -17,13 +17,11 @@ namespace OnlineStatusLight.Application.Services.SourceServices
         private readonly SourceAzureConfiguration _azureConfiguration;
         private readonly ILogger<AzureSourceService> _logger;
 
-        // set the scope for API call to user.read
-        private string[] scopes = new string[] { "Presence.Read" };
-
         private MicrosoftTeamsStatus _lastStatus = MicrosoftTeamsStatus.Unknown;
 
-        private bool waitingAuthentication;
-        private static AuthenticationResult? authResult;
+        private bool _waitingAuthentication;
+        private AuthenticationResult? _authResult;
+        private IAccount _account;
 
         public AzureSourceService(
             IOptions<SourceAzureConfiguration> azureConfiguration,
@@ -50,13 +48,13 @@ namespace OnlineStatusLight.Application.Services.SourceServices
         // TODO: move to a separate Authentication service
         private async Task<AuthenticationResult?> Authenticate()
         {
-            if (authResult != null)
-                return authResult;
+            if (_authResult != null)
+                return _authResult;
 
-            if (waitingAuthentication)
+            if (_waitingAuthentication)
                 return default;
 
-            waitingAuthentication = true;
+            _waitingAuthentication = true;
 
             // Initialize the MSAL library by building a public client application
             var app = PublicClientApplicationBuilder.Create(_azureConfiguration.ClientId)
@@ -68,32 +66,34 @@ namespace OnlineStatusLight.Application.Services.SourceServices
                 .Build();
 
             AuthenticationResult result;
+            var _scopes = new string[] { "Presence.Read" };
             try
             {
                 var accounts = await app.GetAccountsAsync();
-                result = await app.AcquireTokenSilent(scopes, accounts.FirstOrDefault()).ExecuteAsync();
+                result = await app.AcquireTokenSilent(_scopes, _account ?? accounts.FirstOrDefault()).ExecuteAsync();
                 _logger.LogInformation($"AzureAD silent authentication result: {result.Account.Username}");
             }
             catch (Exception)
             {
-                result = await app.AcquireTokenInteractive(scopes).ExecuteAsync();
+                result = await app.AcquireTokenInteractive(_scopes).ExecuteAsync();
                 _logger.LogInformation($"AzureAD interactive authentication result: {result.Account.Username}");
             }
 
-            authResult = result;
-            waitingAuthentication = false;
+            _authResult = result;
+            _account = result.Account;
+            _waitingAuthentication = false;
 
             return result;
         }
 
         private async Task<MicrosoftTeamsStatus> GetAvailability()
         {
-            if (authResult == null)
+            if (_authResult == null)
                 return default;
 
             try
             {
-                var authenticationProvider = new BaseBearerTokenAuthenticationProvider(new TokenProvider(authResult.AccessToken));
+                var authenticationProvider = new BaseBearerTokenAuthenticationProvider(new TokenProvider(_authResult.AccessToken));
 
                 var graphClient = new GraphServiceClient(authenticationProvider);
                 if (graphClient == null)
@@ -160,12 +160,12 @@ namespace OnlineStatusLight.Application.Services.SourceServices
             }
             catch (MsalException msalEx)
             {
-                authResult = null;
+                _authResult = null;
                 _logger.LogError($"Error Acquiring Token:{Environment.NewLine}{msalEx}");
             }
             catch (Exception ex)
             {
-                authResult = null;
+                _authResult = null;
                 _logger.LogError($"Error Acquiring Token Silently:{Environment.NewLine}{ex}");
             }
 
