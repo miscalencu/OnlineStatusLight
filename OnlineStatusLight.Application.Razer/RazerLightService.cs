@@ -1,6 +1,9 @@
 ﻿using Colore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using OnlineStatusLight.Core.Configuration;
+using OnlineStatusLight.Core.Exceptions;
 using OnlineStatusLight.Core.Models;
 using OnlineStatusLight.Core.Services;
 
@@ -12,10 +15,17 @@ namespace OnlineStatusLight.Application.Razer
         private bool _headSetOnly;
         private IChroma? _chroma;
 
-        public RazerLightService(IConfiguration configuration, ILogger<RazerLightService> logger)
+        public RazerLightService(
+            IConfiguration configuration, 
+            IOptions<LightRazerConfiguration> razerConfiguration,
+            ILogger<RazerLightService> logger)
         {
             _logger = logger;
-            _headSetOnly = bool.TryParse(configuration["razer:headsetonly"], out var headSetOnly) ? headSetOnly : false;
+
+            if(razerConfiguration == null)
+                throw new ConfigurationException("Razer configuration is missing");
+
+            _headSetOnly = razerConfiguration.Value.HeadsetOnly;
         }
         public async void End()
         {

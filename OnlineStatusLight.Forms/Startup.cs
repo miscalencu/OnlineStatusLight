@@ -3,49 +3,79 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using NLog.Extensions.Logging;
-using OnlineStatusLight.Application;
-using OnlineStatusLight.Core.Services;
-using Polly;
+using OnlineStatusLight.Application.Extensions;
+using OnlineStatusLight.Application.Services;
+using OnlineStatusLight.Core.Constants;
+using OnlineStatusLight.Core.Enums;
+using OnlineStatusLight.Core.Exceptions;
+using OnlineStatusLight.Core.Extensions;
 using app = System.Windows.Forms;
 
 namespace OnlineStatusLight.Forms
 {
     public class Startup
     {
-        public static IConfigurationRoot ConfigurationRoot;
+        //public static IConfigurationRoot configuration;
         public static IHost AppHost;
 
         public static IHostBuilder CreateHostBuilder(string[] args)
         {
             return Host.CreateDefaultBuilder(args)
-                .ConfigureServices((_, services) =>
+                .ConfigureServices((builder, services) =>
                 {
                     // add configuration
-                    ConfigurationRoot = new ConfigurationBuilder()
+                    var configuration = new ConfigurationBuilder()
                         .AddJsonFile(Path.GetFullPath("appsettings.json"), true, true)
+                        .AddUserSecrets<Startup>(true)
                         .Build();
-                        
-                    var lightService = Type.GetType(ConfigurationRoot!["lightservice"]) ?? typeof(SonoffBasicR3Service);
+
+                    // configure source and light services
+                    var sourceServiceType = GetSourceService(configuration);
+                    var lightServiceType = GetLightService(configuration);
+
+                    services.ConfigureSourceServices(
+                        sourceServiceType,
+                        options => configuration.GetSection(ConfigurationConstants.SourceServiceLogFile).Bind(options),
+                        options => configuration.GetSection(ConfigurationConstants.SourceServiceAzure).Bind(options)
+                    );
+                    services.ConfigureLightServices(
+                        lightServiceType,
+                        options => configuration.GetSection(ConfigurationConstants.LightServiceSonOff).Bind(options),
+                        options => configuration.GetSection(ConfigurationConstants.LightServiceRazer).Bind(options)
+                        );
+
                     // configure services
                     services
-                        .AddSingleton(typeof(ILightService), lightService)
-                        .AddSingleton<IMicrosoftTeamsService, MicrosoftTeamsService>()
                         .AddSingleton<SyncLightService>()
-                        .AddHostedService<SyncLightService>(p => p.GetRequiredService<SyncLightService>());
+                        .AddHostedService(p => p.GetRequiredService<SyncLightService>());
 
                     // configure logger
                     services
                         .AddLogging(configure =>
                         {
                             configure.AddNLog("nlog.config");
-                            // configure.AddConsole();
+                            configure.AddConsole();
                         })
                         .Configure<LoggerFilterOptions>(options => options.MinLevel = LogLevel.Trace);
-
-                    // add sonoff http clients
-                    if (lightService == typeof(SonoffBasicR3Service))
-                        services = ConfigureSonoffHttpClients(services, ConfigurationRoot);
                 });
+        }
+
+        private static SourceServiceType GetSourceService(IConfiguration configuration)
+        {
+            var sourceService = configuration![ConfigurationConstants.SourceServiceType];
+            var sourceServiceType = sourceService.GetEnumValue<SourceServiceType>();
+            if (!sourceServiceType.HasValue)
+                throw new ConfigurationException("Invalid source service type in appsettings.json");
+            return sourceServiceType.Value;
+        }
+
+        private static LightServiceType GetLightService(IConfiguration configuration)
+        {
+            var lightService = configuration![ConfigurationConstants.LightServiceType];
+            var lightServiceType = lightService.GetEnumValue<LightServiceType>();
+            if (!lightServiceType.HasValue)
+                throw new ConfigurationException("Invalid light service type in appsettings.json");
+            return lightServiceType.Value;
         }
 
         public static void SetupErrorLogger()
@@ -60,28 +90,7 @@ namespace OnlineStatusLight.Forms
             _sync.Dispose();
         }
 
-        public static IServiceCollection ConfigureSonoffHttpClients(IServiceCollection services, IConfiguration configuration)
-        {
-            services.AddHttpClient("sonoffRedLedApi", c =>
-            {
-                c!.BaseAddress = new Uri($"http://{configuration!["sonoff:red:ip"]}:8081/zeroconf/");
-                c.DefaultRequestHeaders!.Add("User-Agent", "OnlineStatusLight");
-            }).AddTransientHttpErrorPolicy(p =>
-                p.WaitAndRetryAsync(3, _ => TimeSpan.FromMilliseconds(500)
-            ));
-
-            services.AddHttpClient("sonoffGreenLedApi", c =>
-            {
-                c!.BaseAddress = new Uri($"http://{configuration!["sonoff:green:ip"]}:8081/zeroconf/");
-                c.DefaultRequestHeaders!.Add("User-Agent", "OnlineStatusLight");
-            }).AddTransientHttpErrorPolicy(p =>
-                p.WaitAndRetryAsync(3, _ => TimeSpan.FromMilliseconds(500)
-            ));
-
-            return services;
-        }
-
-        static void UnhandledExceptionTrapper(object sender, UnhandledExceptionEventArgs exception)
+        private static void UnhandledExceptionTrapper(object sender, UnhandledExceptionEventArgs exception)
         {
             var _logger = Startup.AppHost.Services.GetRequiredService<ILogger>();
             var _sync = Startup.AppHost.Services.GetRequiredService<SyncLightService>();

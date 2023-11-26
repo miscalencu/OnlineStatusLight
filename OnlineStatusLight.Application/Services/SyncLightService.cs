@@ -2,7 +2,7 @@
 using OnlineStatusLight.Core.Models;
 using OnlineStatusLight.Core.Services;
 
-namespace OnlineStatusLight.Application
+namespace OnlineStatusLight.Application.Services
 {
     public class SyncLightService : IHostedService, IDisposable
     {
@@ -11,10 +11,10 @@ namespace OnlineStatusLight.Application
 
         private Timer _timer;
 
-        public event EventHandler<MicrosoftTeamsStatus> StateChanged; 
+        public event EventHandler<MicrosoftTeamsStatus> StateChanged;
 
         public SyncLightService(
-            IMicrosoftTeamsService microsoftTeamsService, 
+            IMicrosoftTeamsService microsoftTeamsService,
             ILightService lightService)
         {
             _microsoftTeamsService = microsoftTeamsService;
@@ -23,7 +23,7 @@ namespace OnlineStatusLight.Application
 
         public async Task Sync()
         {
-            var status = _microsoftTeamsService.GetCurrentStatus();
+            var status = await _microsoftTeamsService.GetCurrentStatus();
             StateChanged?.Invoke(this, status);
             await _lightService.SetState(status);
         }
@@ -31,7 +31,7 @@ namespace OnlineStatusLight.Application
         public Task StartAsync(CancellationToken cancellationToken)
         {
             _lightService.Start();
-            _timer = new Timer(this.ExecuteSync, null, TimeSpan.Zero, TimeSpan.FromSeconds(_microsoftTeamsService.PoolingInterval));
+            _timer = new Timer(ExecuteSync, null, TimeSpan.Zero, TimeSpan.FromSeconds(_microsoftTeamsService.PoolingInterval));
             return Task.CompletedTask;
         }
 

@@ -1,37 +1,50 @@
-﻿using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using OnlineStatusLight.Core.Configuration;
 using OnlineStatusLight.Core.Models;
 using OnlineStatusLight.Core.Services;
+using OnlineStatusLight.Core.Exceptions;
 using System.Text;
 
-namespace OnlineStatusLight.Application
+namespace OnlineStatusLight.Application.Services.SourceServices
 {
-    public class MicrosoftTeamsService : IMicrosoftTeamsService
+    public class LogFileSourceService : IMicrosoftTeamsService
     {
-        private readonly ILogger<MicrosoftTeamsService> _logger;
+        private readonly ILogger<IMicrosoftTeamsService> _logger;
         private MicrosoftTeamsStatus _lastStatus = MicrosoftTeamsStatus.Unknown;
         private DateTime _fileLastUpdated = DateTime.MinValue;
 
         public int PoolingInterval { get; set; }
         public string LogsFilePath { get; set; }
 
-        public MicrosoftTeamsService(IConfiguration configuration, ILogger<MicrosoftTeamsService> logger)
+        public LogFileSourceService(
+            IOptions<SourceLogFileConfiguration> logFileConfigurationOptions,
+            ILogger<IMicrosoftTeamsService> logger)
         {
             _logger = logger;
 
-            this.PoolingInterval = Convert.ToInt32(configuration["msteams:interval"]);
-            this.LogsFilePath = Environment.ExpandEnvironmentVariables(Convert.ToString(configuration["msteams:logfile"]));
+            if (logFileConfigurationOptions == null)
+                throw new ConfigurationException("Configuration not found for source service LogFile.");
+
+            if (logFileConfigurationOptions.Value.Interval == default)
+                throw new ConfigurationException("Interval is not set in configuration for source LogFile (0 is not allowed).");
+
+            if (logFileConfigurationOptions.Value.Path == null)
+                throw new ConfigurationException("Path is not set in configuration for source LogFile.");
+
+            PoolingInterval = logFileConfigurationOptions.Value.Interval;
+            LogsFilePath = Environment.ExpandEnvironmentVariables(logFileConfigurationOptions.Value.Path);
         }
 
-        public MicrosoftTeamsStatus GetCurrentStatus()
+        public async Task<MicrosoftTeamsStatus> GetCurrentStatus()
         {
-            var fileInfo = new FileInfo(this.LogsFilePath);
+            var fileInfo = new FileInfo(LogsFilePath);
             if (fileInfo.Exists)
             {
                 var fileLastUpdated = fileInfo.LastWriteTime;
                 if (fileLastUpdated > _fileLastUpdated)
                 {
-                    var lines = ReadLines(this.LogsFilePath);
+                    var lines = await ReadLines(LogsFilePath);
                     foreach (var line in lines.Reverse())
                     {
                         var delFrom = " (current state: ";
@@ -53,30 +66,38 @@ namespace OnlineStatusLight.Application
                                     case "Available":
                                         newStatus = MicrosoftTeamsStatus.Available;
                                         break;
+
                                     case "Away":
                                         newStatus = MicrosoftTeamsStatus.Away;
                                         break;
+
                                     case "Busy":
                                     case "OnThePhone":
                                         newStatus = MicrosoftTeamsStatus.Busy;
                                         break;
+
                                     case "DoNotDisturb":
                                     case "Presenting":
                                         newStatus = MicrosoftTeamsStatus.DoNotDisturb;
                                         break;
+
                                     case "BeRightBack":
                                         newStatus = MicrosoftTeamsStatus.Away;
                                         break;
+
                                     case "Offline":
                                         newStatus = MicrosoftTeamsStatus.Offline;
                                         break;
+
                                     case "NewActivity":
                                         // ignore this - happens where there is a new activity: Message, Like/Action, File Upload
                                         // this is not a real status change, just shows the bell in the icon
                                         break;
+
                                     case "InAMeeting":
                                         newStatus = MicrosoftTeamsStatus.InAMeeting;
                                         break;
+
                                     default:
                                         _logger.LogWarning($"MS Teams status unknown: {status}");
                                         newStatus = MicrosoftTeamsStatus.Unknown;
@@ -100,17 +121,21 @@ namespace OnlineStatusLight.Application
             return _lastStatus;
         }
 
-        private IEnumerable<string> ReadLines(string path)
+        private async Task<IEnumerable<string>> ReadLines(string path)
         {
+            var lines = new List<string>();
+
             using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 0x1000, FileOptions.SequentialScan))
             using (var sr = new StreamReader(fs, Encoding.UTF8))
             {
                 string line;
-                while ((line = sr.ReadLine()) != null)
+                while ((line = await sr.ReadLineAsync()) != null)
                 {
-                    yield return line;
+                    lines.Add(line);
                 }
             }
+
+            return lines;
         }
     }
 }
