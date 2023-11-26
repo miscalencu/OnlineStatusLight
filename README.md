@@ -1,14 +1,53 @@
 # OnlineStatusLight
-.NET app that controls a lighting service to show online status of Microsoft Teams
+This is a .NET Code desktop app that controls a lighting service to show online status of Microsoft Teams
 
-=> Current implementation for MS Teams which checks the Status by reading the local logs file.
+## Source Services 
+
+There are currently two implementation for getting the MS Teams status:
+- [Azure](#azuresourceservice) - by querying the MSGraph for the Teams Presence.
+- [LogFile](#logfilesourceservice) - by reading the MS Teams local logs file
+
+### AzureSourceService
+
+Implementation for MS Teams which reads the current status using the [Presence API](https://learn.microsoft.com/en-us/graph/api/presence-get?view=graph-rest-1.0&tabs=http).
+
 ```
-"msteams": {
-    "interval": 5,
-    "logfile": "%appdata%\\Microsoft\\Teams\\logs.txt"
+{
+  "sourceService": {
+    "type": "azure",
+    "azure": {
+      "interval": 5,
+      "authority": "https://login.microsoftonline.com",
+      "tenantId": "xxx",
+      "clientId": "xxx",
+      "clientSecret": "xxx",
+      "redirectUri": "xxx"
+    }
+  },
 }
 ```
-Currently, there are two services supported: [Sonoff](#sonoff) and [Razer](#razer).
+This implementation required that you have an application setup in your current AzureAD, application that has granted the `Presence.Read` permission.
+
+### LogFileSourceService
+
+Implementation for MS Teams which checks the Status by reading the local logs file.
+```
+"sourceService": {
+  "type": "logFile",
+  "msteams": {
+      "interval": 5,
+      "logfile": "%appdata%\\Microsoft\\Teams\\logs.txt"
+  }
+}
+```
+
+⚠️ This implementation will only work for [Classic Teams app version](https://learn.microsoft.com/en-us/officeupdates/teams-app-versioning#classic-teams-app-version), not for the [Windows Teams version](https://learn.microsoft.com/en-us/officeupdates/teams-app-versioning#windows-version-history).
+
+## Light Services
+
+Currently, there are two services supported: 
+- [Sonoff](#sonoff) - to control SonOff BasicR3 WiFi smart switches.
+- [Razer](#razer) - to control Razer devices.
 
 ## Sonoff
 
@@ -18,19 +57,18 @@ Details of the hardware implementation here: https://www.linkedin.com/feed/updat
 - Green light turns on for Available.
 - Both lights turn on for Do Not Disturb (Presenting). Initial idea was to blink the red light but the switch makes a noise every time it is activated so I had to give up that idea.
 
-Use this service by stating in appsettings.json or by omitting it completely:
+Required configuration for this implementation:
 ```
-"lightservice": "OnlineStatusLight.Application.SonoffBasicR3Service, OnlineStatusLight.Application"
-```
-Additional config:
-```
-"sonoff": {
-    "red": {
-      "ip": "192.168.0.62"
-    },
-    "green": {
-      "ip": "192.168.0.61"
-    }
+"lightService": {
+  "type": "sonOff",
+  "sonoff": {
+      "red": {
+        "ip": "192.168.0.62"
+      },
+      "green": {
+        "ip": "192.168.0.61"
+      }
+  }
 }
 ```
 
@@ -40,14 +78,13 @@ Additional config:
 - Yellow light turns on for Away
 - Purple light turns on for OutOfOffice
 
-Use this service by stating in appsettings.json:
+Required configuration for this implementation:
 ```
-"lightservice": "OnlineStatusLight.Application.Razer.RazerLightService, OnlineStatusLight.Application.Razer"
-```
-Additional config:
-```
-"razer": {
-    // true = will color the HeadSet device only. false = will color ALL Razer devices
-    "headsetonly": true
+"lightService": {
+  "type": "razer",
+  "razer": {
+      // true = will color the HeadSet device only. false = will color ALL Razer devices
+      "headsetonly": true
+  }
 }
 ```
