@@ -1,28 +1,31 @@
-﻿using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using OnlineStatusLight.Application.Extensions;
+using OnlineStatusLight.Core.Configuration;
+using OnlineStatusLight.Core.Constants;
+using OnlineStatusLight.Core.Exceptions;
 using OnlineStatusLight.Core.Models;
 using OnlineStatusLight.Core.Services;
 
-namespace OnlineStatusLight.Application
+namespace OnlineStatusLight.Application.Services.LightServices
 {
     public class SonoffBasicR3Service : ISonoffBasicR3Service, ILightService
     {
         private readonly ILogger<SonoffBasicR3Service> _logger;
-        private readonly IConfiguration _configuration;
+        private readonly LightSonoffConfiguration _sonoffConfiguration;
 
         public Dictionary<SonoffLedType, SonoffLedInfo> Leds { get; set; } = new Dictionary<SonoffLedType, SonoffLedInfo>();
 
         // load statuses and device ids for all leds
         public SonoffBasicR3Service(
-            IHttpClientFactory httpClientFactory, 
+            IHttpClientFactory httpClientFactory,
             ILogger<SonoffBasicR3Service> logger,
-            IConfiguration configuration)
+            IOptions<LightSonoffConfiguration> sonoffConfiguration)
         {
             // add green led
             Leds.Add(SonoffLedType.Green, new SonoffLedInfo()
             {
-                HttpAPIClient = httpClientFactory.CreateClient("sonoffGreenLedApi"),
+                HttpAPIClient = httpClientFactory.CreateClient(SonoffConstants.GreenLedApi),
                 Status = SonoffLedStatus.Off,
                 Type = SonoffLedType.Green
             });
@@ -30,13 +33,17 @@ namespace OnlineStatusLight.Application
             // add red led
             Leds.Add(SonoffLedType.Red, new SonoffLedInfo()
             {
-                HttpAPIClient = httpClientFactory.CreateClient("sonoffRedLedApi"),
+                HttpAPIClient = httpClientFactory.CreateClient(SonoffConstants.RedLedApi),
                 Status = SonoffLedStatus.Off,
                 Type = SonoffLedType.Red
             });
 
             _logger = logger;
-            _configuration = configuration;
+
+            if (sonoffConfiguration == null)
+                throw new ConfigurationException("Configuration not found for light service Sonoff.");
+
+            _sonoffConfiguration = sonoffConfiguration.Value;
         }
 
         public async Task SwitchOff(SonoffLedType led, bool switchOffOthers = true)
@@ -47,16 +54,11 @@ namespace OnlineStatusLight.Application
                 await SwitchOffAll(led);
             }
 
-            if (this.Leds[led].Status == SonoffLedStatus.Off)
-            {
-                return;
-            }
-
             _logger.LogInformation($"Switching {led} to OFF.");
 
-            var response = await this.Leds[led].HttpAPIClient.PostJsonAsync<SonoffConfigurationInfo>("switch", new
+            var response = await Leds[led].HttpAPIClient.PostJsonAsync<SonoffConfigurationInfo>("switch", new
             {
-                deviceid = this.Leds[led].DeviceId,
+                deviceid = Leds[led].DeviceId,
                 data = new
                 {
                     Switch = "off"
@@ -64,7 +66,7 @@ namespace OnlineStatusLight.Application
             });
             response.HttpResponse.EnsureSuccessStatusCode();
 
-            this.Leds[led].Status = SonoffLedStatus.Off;
+            Leds[led].Status = SonoffLedStatus.Off;
         }
 
         public async Task SwitchOn(SonoffLedType led, bool switchOffOthers = true)
@@ -75,15 +77,16 @@ namespace OnlineStatusLight.Application
                 await SwitchOffAll(led);
             }
 
-            if (this.Leds[led].Status == SonoffLedStatus.On) {
+            if (Leds[led].Status == SonoffLedStatus.On)
+            {
                 return;
             }
 
             _logger.LogInformation($"Switching {led} to ON.");
 
-            var response = await this.Leds[led].HttpAPIClient.PostJsonAsync<SonoffConfigurationInfo>("switch", new 
+            var response = await Leds[led].HttpAPIClient.PostJsonAsync<SonoffConfigurationInfo>("switch", new
             {
-                deviceid = this.Leds[led].DeviceId,
+                deviceid = Leds[led].DeviceId,
                 data = new
                 {
                     Switch = "on",
@@ -92,14 +95,14 @@ namespace OnlineStatusLight.Application
             });
             response.HttpResponse.EnsureSuccessStatusCode();
 
-            this.Leds[led].Status = SonoffLedStatus.On;
+            Leds[led].Status = SonoffLedStatus.On;
         }
 
-        public async Task SwitchOffAll(SonoffLedType? ignore = null)
+        public async Task SwitchOffAll(SonoffLedType? ignore = null, bool force = false)
         {
-            foreach (var led in this.Leds
+            foreach (var led in Leds
                 .Where(l => !ignore.HasValue || l.Key != ignore.Value)
-                .Where(l => l.Value.Status == SonoffLedStatus.On))
+                .Where(l => force == true || l.Value.Status == SonoffLedStatus.On))
             {
                 await SwitchOff(led.Key, false);
             }
@@ -107,17 +110,13 @@ namespace OnlineStatusLight.Application
 
         public async Task<SonoffConfigurationInfo> GetConfiguration(SonoffLedType led)
         {
-            var version = 1.0f;
-            if (float.TryParse(_configuration["sonoff:version"], out float configVersion))
-                version = configVersion;
-
             dynamic payload = new
             {
                 deviceid = "",
                 data = new { }
             };
 
-            if (version > 3.5f)
+            if (_sonoffConfiguration.Version > 3.5)
             {
                 payload = new
                 {
@@ -128,7 +127,7 @@ namespace OnlineStatusLight.Application
                 };
             }
 
-            var response = await this.Leds[led].HttpAPIClient.PostJsonAsync<SonoffConfigurationInfo>("info", (object)payload);
+            var response = await Leds[led].HttpAPIClient.PostJsonAsync<SonoffConfigurationInfo>("info", (object)payload);
 
             response.HttpResponse.EnsureSuccessStatusCode();
 
@@ -151,13 +150,16 @@ namespace OnlineStatusLight.Application
                 case MicrosoftTeamsStatus.Available:
                     await SwitchOn(SonoffLedType.Green);
                     break;
+
                 case MicrosoftTeamsStatus.Busy:
                     await SwitchOn(SonoffLedType.Red);
                     break;
+
                 case MicrosoftTeamsStatus.DoNotDisturb:
                     await SwitchOn(SonoffLedType.Red, false);
                     await SwitchOn(SonoffLedType.Green, false);
                     break;
+
                 default:
                     await SwitchOffAll();
                     break;
@@ -167,12 +169,13 @@ namespace OnlineStatusLight.Application
         public void Start()
         {
             _logger.LogInformation($"Starting SonoffBasicR3Service");
+            SwitchOffAll(null, true).GetAwaiter().GetResult();
         }
 
         public void End()
         {
-             _logger.LogInformation($"Ending SonoffBasicR3Service");
-            SwitchOffAll().GetAwaiter().GetResult();
+            _logger.LogInformation($"Ending SonoffBasicR3Service");
+            SwitchOffAll(null, true).GetAwaiter().GetResult();
         }
     }
 }

@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
@@ -10,9 +10,15 @@
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="6.0.0" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="6.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Http.Polly" Version="6.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="6.0.0" />
+	<PackageReference Include="Azure.Identity" Version="1.10.3" />
+	<PackageReference Include="Microsoft.Graph" Version="5.34.0" />
+	<PackageReference Include="Microsoft.Identity.Client" Version="4.57.0" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\OnlineStatusLight.Application.Razer\OnlineStatusLight.Application.Razer.csproj" />
     <ProjectReference Include="..\OnlineStatusLight.Core\OnlineStatusLight.Core.csproj" />
   </ItemGroup>
 

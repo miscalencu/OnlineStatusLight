@@ -4,7 +4,7 @@
     public enum MicrosoftTeamsStatus
     {
         Available,
-        Busy,        
+        Busy,
         DoNotDisturb,
         Away,
         Offline,

@@ -1,5 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using OnlineStatusLight.Application;
+﻿using Microsoft.Win32;
+using OnlineStatusLight.Application.Services;
 using OnlineStatusLight.Core.Models;
 using OnlineStatusLight.Forms.Properties;
 using System.ComponentModel;
@@ -48,8 +48,15 @@ namespace OnlineStatusLight.Forms
 
             // Handle the DoubleClick event to activate the form.
             // _notifyIcon.DoubleClick += new EventHandler(this.NotifyIcon_DoubleClick);
-
             _sync.StateChanged += StateChanged;
+
+            // close on windows shutdown
+            SystemEvents.SessionEnding += SystemEvents_SessionEnding;
+        }
+
+        private void SystemEvents_SessionEnding(object sender, SessionEndingEventArgs e)
+        {
+            _sync.Dispose();
         }
 
         private void StateChanged(object? sender, MicrosoftTeamsStatus status)

@@ -7,6 +7,6 @@ namespace OnlineStatusLight.Core.Services
         // in seconds
         int PoolingInterval { get; set; }
 
-        MicrosoftTeamsStatus GetCurrentStatus();
+        Task<MicrosoftTeamsStatus> GetCurrentStatus();
     }
 }
