@@ -9,6 +9,7 @@ using OnlineStatusLight.Core.Configuration;
 using OnlineStatusLight.Core.Exceptions;
 using OnlineStatusLight.Core.Models;
 using OnlineStatusLight.Core.Services;
+using System.Data;
 
 namespace OnlineStatusLight.Application.Services.SourceServices
 {
@@ -22,6 +23,7 @@ namespace OnlineStatusLight.Application.Services.SourceServices
         private bool _waitingAuthentication;
         private AuthenticationResult? _authResult;
         private IAccount _account;
+        private IPublicClientApplication _publicClient;
 
         public AzureSourceService(
             IOptions<SourceAzureConfiguration> azureConfiguration,
@@ -31,8 +33,17 @@ namespace OnlineStatusLight.Application.Services.SourceServices
                 throw new ConfigurationException("Configuration not found for source service Azure.");
 
             _azureConfiguration = azureConfiguration.Value;
-            PoolingInterval = _azureConfiguration.Interval;
             _logger = logger;
+            // Initialize the MSAL library by building a public client application
+            _publicClient = PublicClientApplicationBuilder.Create(_azureConfiguration.ClientId)
+                .WithAuthority($"{_azureConfiguration.Authority}/{_azureConfiguration.TenantId}")
+                .WithExtraQueryParameters($"client_secret={_azureConfiguration.ClientSecret}")
+                .WithRedirectUri(_azureConfiguration.RedirectUri)
+                //this is the currently recommended way to log MSAL message. For more info refer to https://github.com/AzureAD/microsoft-authentication-library-for-dotnet/wiki/logging
+                .WithLogging(new IdentityLogger(EventLogLevel.Warning), enablePiiLogging: false) //set Identity Logging level to Warning which is a middle ground
+                .Build();
+
+            PoolingInterval = _azureConfiguration.Interval;
         }
 
         public int PoolingInterval { get; set; }
@@ -48,34 +59,25 @@ namespace OnlineStatusLight.Application.Services.SourceServices
         // TODO: move to a separate Authentication service
         private async Task<AuthenticationResult?> Authenticate()
         {
-            if (_authResult != null)
-                return _authResult;
-
             if (_waitingAuthentication)
                 return default;
 
-            _waitingAuthentication = true;
+            if (_authResult != null && _authResult.ExpiresOn >= DateTime.UtcNow.AddMinutes(-5))
+                return _authResult;
 
-            // Initialize the MSAL library by building a public client application
-            var app = PublicClientApplicationBuilder.Create(_azureConfiguration.ClientId)
-                .WithAuthority($"{_azureConfiguration.Authority}/{_azureConfiguration.TenantId}")
-                .WithExtraQueryParameters($"client_secret={_azureConfiguration.ClientSecret}")
-                .WithRedirectUri(_azureConfiguration.RedirectUri)
-                //this is the currently recommended way to log MSAL message. For more info refer to https://github.com/AzureAD/microsoft-authentication-library-for-dotnet/wiki/logging
-                .WithLogging(new IdentityLogger(EventLogLevel.Warning), enablePiiLogging: false) //set Identity Logging level to Warning which is a middle ground
-                .Build();
+            _waitingAuthentication = true;
 
             AuthenticationResult result;
             var _scopes = new string[] { "Presence.Read" };
             try
             {
-                var accounts = await app.GetAccountsAsync();
-                result = await app.AcquireTokenSilent(_scopes, _account ?? accounts.FirstOrDefault()).ExecuteAsync();
+                var accounts = await _publicClient.GetAccountsAsync();
+                result = await _publicClient.AcquireTokenSilent(_scopes, _account ?? accounts.FirstOrDefault()).ExecuteAsync();
                 _logger.LogInformation($"AzureAD silent authentication result: {result.Account.Username}");
             }
             catch (Exception)
             {
-                result = await app.AcquireTokenInteractive(_scopes).ExecuteAsync();
+                result = await _publicClient.AcquireTokenInteractive(_scopes).ExecuteAsync();
                 _logger.LogInformation($"AzureAD interactive authentication result: {result.Account.Username}");
             }
 
@@ -89,7 +91,7 @@ namespace OnlineStatusLight.Application.Services.SourceServices
         private async Task<MicrosoftTeamsStatus> GetAvailability()
         {
             if (_authResult == null)
-                return default;
+                return MicrosoftTeamsStatus.Unknown;
 
             try
             {
@@ -116,6 +118,7 @@ namespace OnlineStatusLight.Application.Services.SourceServices
                         break;
 
                     case "Away":
+                    case "AvailableIdle":
                         newStatus = MicrosoftTeamsStatus.Away;
                         break;
 

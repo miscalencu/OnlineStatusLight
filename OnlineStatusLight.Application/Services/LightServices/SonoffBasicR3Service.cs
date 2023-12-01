@@ -104,7 +104,14 @@ namespace OnlineStatusLight.Application.Services.LightServices
                 .Where(l => !ignore.HasValue || l.Key != ignore.Value)
                 .Where(l => force == true || l.Value.Status == SonoffLedStatus.On))
             {
-                await SwitchOff(led.Key, false);
+                try
+                {
+                    await SwitchOff(led.Key, false);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, $"Error switching off {led.Key}.");
+                }
             }
         }
 
