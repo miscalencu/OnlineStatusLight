@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net6.0-windows</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
@@ -20,6 +20,7 @@
   <ItemGroup>
     <ProjectReference Include="..\OnlineStatusLight.Application.Razer\OnlineStatusLight.Application.Razer.csproj" />
     <ProjectReference Include="..\OnlineStatusLight.Core\OnlineStatusLight.Core.csproj" />
+    <ProjectReference Include="..\OnlineStatusLight.Source.WindowsAutomation\OnlineStatusLight.Source.WindowsAutomation.csproj" />
   </ItemGroup>
 
 </Project>

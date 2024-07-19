@@ -5,6 +5,7 @@
         public const string SourceServiceType = "sourceService:type";
         public const string SourceServiceLogFile = "sourceService:logFile";
         public const string SourceServiceAzure = "sourceService:azure";
+        public const string SourceWindowsAutomation = "sourceService:windowsAutomation";
 
         public const string LightServiceType = "lightService:type";
         public const string LightServiceSonOff = "lightService:sonOff";
