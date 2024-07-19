@@ -7,6 +7,7 @@ using OnlineStatusLight.Core.Configuration;
 using OnlineStatusLight.Core.Constants;
 using OnlineStatusLight.Core.Enums;
 using OnlineStatusLight.Core.Services;
+using OnlineStatusLight.Source.WindowsAutomation;
 using Polly;
 
 namespace OnlineStatusLight.Application.Extensions
@@ -17,7 +18,8 @@ namespace OnlineStatusLight.Application.Extensions
             this IServiceCollection services,
             SourceServiceType sourceServiceType,
             Action<SourceLogFileConfiguration> sourceLogFileSetup,
-            Action<SourceAzureConfiguration> sourceAzureSetup)
+            Action<SourceAzureConfiguration> sourceAzureSetup,
+            Action<SourceWindowsAutomationConfiguration> sourceWindowsAutomationSetup)
         {
             switch (sourceServiceType)
             {
@@ -29,6 +31,11 @@ namespace OnlineStatusLight.Application.Extensions
                 case SourceServiceType.Azure:
                     services.Configure(sourceAzureSetup);
                     services.AddSingleton<IMicrosoftTeamsService, AzureSourceService>();
+                    break;
+
+                case SourceServiceType.WindowsAutomation:
+                    services.Configure(sourceWindowsAutomationSetup);
+                    services.AddSingleton<IMicrosoftTeamsService, WindowsAutomationService>();
                     break;
 
                 default:

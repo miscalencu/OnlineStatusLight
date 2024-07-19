@@ -36,7 +36,8 @@ namespace OnlineStatusLight.Forms
                     services.ConfigureSourceServices(
                         sourceServiceType,
                         options => configuration.GetSection(ConfigurationConstants.SourceServiceLogFile).Bind(options),
-                        options => configuration.GetSection(ConfigurationConstants.SourceServiceAzure).Bind(options)
+                        options => configuration.GetSection(ConfigurationConstants.SourceServiceAzure).Bind(options),
+                        options => configuration.GetSection(ConfigurationConstants.SourceWindowsAutomation).Bind(options)
                     );
                     services.ConfigureLightServices(
                         lightServiceType,

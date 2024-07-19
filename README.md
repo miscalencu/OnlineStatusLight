@@ -3,9 +3,29 @@ This is a .NET Code desktop app that controls a lighting service to show online 
 
 ## Source Services 
 
-There are currently two implementation for getting the MS Teams status:
+There are currently three implementation for getting the MS Teams status:
+- [WindowsAutomation](#windowsautomationsourceservice) - by using the Windows Automation (UIAutomation) to read the Teams status (Windows only).
 - [Azure](#azuresourceservice) - by querying the MSGraph for the Teams Presence.
 - [LogFile](#logfilesourceservice) - by reading the MS Teams local logs file
+
+### WindowsAutomationSourceService
+
+Implementation for MS Teams which reads the current status by using the Windows Automation (UIAutomation) to read the Teams status.
+
+```
+{
+  "sourceService": {
+	"type": "windowsAutomation",
+	"windowsAutomation": {
+	  "interval": 5,
+      "windowName": "Microsoft Teams",
+      "statusPattern": "Your profile, status @status"
+	}
+  }
+}
+```
+
+This implementation will only work under Windows machines.
 
 ### AzureSourceService
 
