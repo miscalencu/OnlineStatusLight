@@ -4,8 +4,10 @@ namespace OnlineStatusLight.Core.Services
 {
     public interface ILightService
     {
-        void Start();
-        void End();
+        Task Start();
+
+        Task End();
+
         Task SetState(MicrosoftTeamsStatus status);
     }
 }

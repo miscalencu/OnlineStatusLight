@@ -1,4 +1,5 @@
 ﻿using OnlineStatusLight.Core.Models;
+using System.Threading;
 
 namespace OnlineStatusLight.Core.Services
 {
@@ -7,6 +8,6 @@ namespace OnlineStatusLight.Core.Services
         // in seconds
         int PoolingInterval { get; set; }
 
-        Task<MicrosoftTeamsStatus> GetCurrentStatus();
+        Task<MicrosoftTeamsStatus> GetCurrentStatus(CancellationToken cancellationToken);
     }
 }

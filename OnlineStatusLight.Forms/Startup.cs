@@ -88,7 +88,7 @@ namespace OnlineStatusLight.Forms
         private static void ProcessExit(object? sender, EventArgs e)
         {
             var _sync = Startup.AppHost.Services.GetRequiredService<SyncLightService>();
-            _sync.Dispose();
+            _ = _sync.StopAsync(CancellationToken.None);
         }
 
         private static void UnhandledExceptionTrapper(object sender, UnhandledExceptionEventArgs exception)
@@ -96,11 +96,11 @@ namespace OnlineStatusLight.Forms
             var _logger = Startup.AppHost.Services.GetRequiredService<ILogger>();
             var _sync = Startup.AppHost.Services.GetRequiredService<SyncLightService>();
 
-            _sync.Dispose();
-            _logger.LogError(exception.ExceptionObject as Exception, "An error has occured" + Environment.NewLine);
+            _ = _sync.StopAsync(CancellationToken.None);
+            _logger.LogError(exception.ExceptionObject as Exception, "An error has occured{NewLine}", Environment.NewLine);
             _logger.LogWarning("Exiting because an error occured! Please check logs for error details.");
 
-            MessageBox.Show("Exiting because an error occured! Please check logs for error details.");
+            Thread.Sleep(5000); // give some time to write the log
 
             app.Application.Exit();
             Environment.Exit(1);

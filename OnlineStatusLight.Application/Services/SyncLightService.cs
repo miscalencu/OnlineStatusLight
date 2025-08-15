@@ -5,14 +5,14 @@ using OnlineStatusLight.Core.Services;
 
 namespace OnlineStatusLight.Application.Services
 {
-    public class SyncLightService : IHostedService, IDisposable
+    public class SyncLightService : IHostedService
     {
         private readonly IMicrosoftTeamsService _microsoftTeamsService;
         private readonly ILightService _lightService;
         private readonly ILogger<SyncLightService> _logger;
-        private Timer _timer;
+        private Timer _timer = null!;
 
-        public event EventHandler<MicrosoftTeamsStatus> StateChanged;
+        public event EventHandler<MicrosoftTeamsStatus>? StateChanged;
 
         public SyncLightService(
             IMicrosoftTeamsService microsoftTeamsService,
@@ -24,9 +24,23 @@ namespace OnlineStatusLight.Application.Services
             _logger = logger;
         }
 
-        public async Task Sync()
+        public async Task StartAsync(CancellationToken cancellationToken)
         {
-            var status = await _microsoftTeamsService.GetCurrentStatus();
+            try
+            {
+                await _lightService.Start();
+            }
+            catch (Exception)
+            {
+                _logger.LogError("Error starting light service.");
+            }
+
+            _timer = new Timer(async _ => await Sync(cancellationToken), null, TimeSpan.Zero, TimeSpan.FromSeconds(_microsoftTeamsService.PoolingInterval));
+        }
+
+        public async Task Sync(CancellationToken cancellationToken)
+        {
+            var status = await _microsoftTeamsService.GetCurrentStatus(cancellationToken);
             StateChanged?.Invoke(this, status);
             try
             {
@@ -38,40 +52,10 @@ namespace OnlineStatusLight.Application.Services
             }
         }
 
-        public Task StartAsync(CancellationToken cancellationToken)
+        public async Task StopAsync(CancellationToken cancellationToken)
         {
-            try
-            {
-                _lightService.Start();
-            }
-            catch (Exception)
-            {
-                _logger.LogError("Error starting light service.");
-            }
-
-            _timer = new Timer(ExecuteSync, null, TimeSpan.Zero, TimeSpan.FromSeconds(_microsoftTeamsService.PoolingInterval));
-            return Task.CompletedTask;
-        }
-
-        private void ExecuteSync(object state)
-        {
-            Sync().GetAwaiter().GetResult();
-        }
-
-        public Task StopAsync(CancellationToken cancellationToken)
-        {
-            _timer.Change(Timeout.Infinite, 0);
-            return Task.CompletedTask;
-        }
-
-        public void Dispose()
-        {
-            if (_timer != null)
-            {
-                _timer.Dispose();
-                _timer = null;
-            }
-            _lightService.End();
+            _timer?.Dispose();
+            await _lightService.End();
         }
     }
 }

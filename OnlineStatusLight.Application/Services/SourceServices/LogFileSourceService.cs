@@ -36,7 +36,7 @@ namespace OnlineStatusLight.Application.Services.SourceServices
             LogsFilePath = Environment.ExpandEnvironmentVariables(logFileConfigurationOptions.Value.Path);
         }
 
-        public async Task<MicrosoftTeamsStatus> GetCurrentStatus()
+        public async Task<MicrosoftTeamsStatus> GetCurrentStatus(CancellationToken cancellationToken)
         {
             var fileInfo = new FileInfo(LogsFilePath);
             if (fileInfo.Exists)
@@ -99,7 +99,7 @@ namespace OnlineStatusLight.Application.Services.SourceServices
                                         break;
 
                                     default:
-                                        _logger.LogWarning($"MS Teams status unknown: {status}");
+                                        _logger.LogWarning("MS Teams status unknown: {Status}", status);
                                         newStatus = MicrosoftTeamsStatus.Unknown;
                                         break;
                                 }
@@ -107,7 +107,7 @@ namespace OnlineStatusLight.Application.Services.SourceServices
                                 if (newStatus != _lastStatus)
                                 {
                                     _lastStatus = newStatus;
-                                    _logger.LogInformation($"MS Teams status set to {_lastStatus}");
+                                    _logger.LogInformation("MS Teams status set to {LastStatus}", _lastStatus);
                                 }
                                 break;
                             }
@@ -117,7 +117,6 @@ namespace OnlineStatusLight.Application.Services.SourceServices
                 }
             }
 
-            // TO DO
             return _lastStatus;
         }
 
