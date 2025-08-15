@@ -23,7 +23,7 @@ namespace OnlineStatusLight.Application.Authentication
 
         public void Log(LogEntry entry)
         {
-            Debug.WriteLine($"MSAL: EventLogLevel: {entry.EventLogLevel}, Message: {entry.Message} ");
+            Debug.WriteLine("MSAL: EventLogLevel: {EntryEventLogLevel}, Message: {EntryMessage} ", entry.EventLogLevel, entry.Message);
         }
     }
 }

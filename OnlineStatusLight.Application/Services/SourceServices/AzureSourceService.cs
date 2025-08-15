@@ -9,7 +9,6 @@ using OnlineStatusLight.Core.Configuration;
 using OnlineStatusLight.Core.Exceptions;
 using OnlineStatusLight.Core.Models;
 using OnlineStatusLight.Core.Services;
-using System.Data;
 
 namespace OnlineStatusLight.Application.Services.SourceServices
 {
@@ -48,7 +47,7 @@ namespace OnlineStatusLight.Application.Services.SourceServices
 
         public int PoolingInterval { get; set; }
 
-        public async Task<MicrosoftTeamsStatus> GetCurrentStatus()
+        public async Task<MicrosoftTeamsStatus> GetCurrentStatus(CancellationToken cancellationToken)
         {
             await Authenticate();
             var availability = await GetAvailability();
@@ -73,12 +72,12 @@ namespace OnlineStatusLight.Application.Services.SourceServices
             {
                 var accounts = await _publicClient.GetAccountsAsync();
                 result = await _publicClient.AcquireTokenSilent(_scopes, _account ?? accounts.FirstOrDefault()).ExecuteAsync();
-                _logger.LogInformation($"AzureAD silent authentication result: {result.Account.Username}");
+                _logger.LogInformation("AzureAD silent authentication result: {ResultAccountUsername}", result.Account.Username);
             }
             catch (Exception)
             {
                 result = await _publicClient.AcquireTokenInteractive(_scopes).ExecuteAsync();
-                _logger.LogInformation($"AzureAD interactive authentication result: {result.Account.Username}");
+                _logger.LogInformation("AzureAD interactive authentication result: {ResultAccountUsername}", result.Account.Username);
             }
 
             _authResult = result;
@@ -150,7 +149,7 @@ namespace OnlineStatusLight.Application.Services.SourceServices
                         break;
 
                     default:
-                        _logger.LogWarning($"MSGraph availability unknown: {availability}");
+                        _logger.LogWarning("MSGraph availability unknown: {Availability}", availability);
                         newStatus = MicrosoftTeamsStatus.Unknown;
                         break;
                 }
@@ -158,18 +157,18 @@ namespace OnlineStatusLight.Application.Services.SourceServices
                 if (newStatus != _lastStatus)
                 {
                     _lastStatus = newStatus;
-                    _logger.LogInformation($"MS Teams status set to {_lastStatus}");
+                    _logger.LogInformation("MS Teams status set to {LastStatus}", _lastStatus);
                 }
             }
             catch (MsalException msalEx)
             {
                 _authResult = null;
-                _logger.LogError($"Error Acquiring Token:{Environment.NewLine}{msalEx}");
+                _logger.LogError(msalEx, "Error Acquiring Token");
             }
             catch (Exception ex)
             {
                 _authResult = null;
-                _logger.LogError($"Error Acquiring Token Silently:{Environment.NewLine}{ex}");
+                _logger.LogError(ex, "Error Acquiring Token Silently");
             }
 
             return _lastStatus;

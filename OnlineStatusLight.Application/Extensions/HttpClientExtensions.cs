@@ -6,8 +6,8 @@ namespace OnlineStatusLight.Application.Extensions
 {
     public class Response<T>
     {
-        public T Data { get; set; }
-        public HttpResponseMessage HttpResponse { get; set; }
+        public T Data { get; set; } = default!;
+        public HttpResponseMessage HttpResponse { get; set; } = default!;
 
         public async Task<string> GetHttpContent()
         {
@@ -17,11 +17,17 @@ namespace OnlineStatusLight.Application.Extensions
 
     public static class HttpClientExtensions
     {
+        public static HttpClient SetTimeout(this HttpClient httpClient, int timeoutInSeconds)
+        {
+            httpClient.Timeout = TimeSpan.FromSeconds(timeoutInSeconds);
+            return httpClient;
+        }
+
         public static async Task<TOutput> ConvertResponse<TOutput>(this HttpResponseMessage response)
         {
             if (!response.IsSuccessStatusCode)
             {
-                return default;
+                return default!;
             }
 
             string responseContent = await response.Content.ReadAsStringAsync();

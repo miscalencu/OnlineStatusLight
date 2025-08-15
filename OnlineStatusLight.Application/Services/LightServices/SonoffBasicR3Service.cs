@@ -22,10 +22,15 @@ namespace OnlineStatusLight.Application.Services.LightServices
             ILogger<SonoffBasicR3Service> logger,
             IOptions<LightSonoffConfiguration> sonoffConfiguration)
         {
+            if (sonoffConfiguration == null)
+                throw new ConfigurationException("Configuration not found for light service Sonoff.");
+
+            _sonoffConfiguration = sonoffConfiguration.Value;
+
             // add green led
             Leds.Add(SonoffLedType.Green, new SonoffLedInfo()
             {
-                HttpAPIClient = httpClientFactory.CreateClient(SonoffConstants.GreenLedApi),
+                HttpAPIClient = httpClientFactory.CreateClient(SonoffConstants.GreenLedApi).SetTimeout(_sonoffConfiguration.TimeoutInSeconds),
                 Status = SonoffLedStatus.Off,
                 Type = SonoffLedType.Green
             });
@@ -33,17 +38,12 @@ namespace OnlineStatusLight.Application.Services.LightServices
             // add red led
             Leds.Add(SonoffLedType.Red, new SonoffLedInfo()
             {
-                HttpAPIClient = httpClientFactory.CreateClient(SonoffConstants.RedLedApi),
+                HttpAPIClient = httpClientFactory.CreateClient(SonoffConstants.RedLedApi).SetTimeout(5),
                 Status = SonoffLedStatus.Off,
                 Type = SonoffLedType.Red
             });
 
             _logger = logger;
-
-            if (sonoffConfiguration == null)
-                throw new ConfigurationException("Configuration not found for light service Sonoff.");
-
-            _sonoffConfiguration = sonoffConfiguration.Value;
         }
 
         public async Task SwitchOff(SonoffLedType led, bool switchOffOthers = true)
@@ -54,7 +54,7 @@ namespace OnlineStatusLight.Application.Services.LightServices
                 await SwitchOffAll(led);
             }
 
-            _logger.LogInformation($"Switching {led} to OFF.");
+            _logger.LogInformation("Switching {Led} to OFF.", led);
 
             var response = await Leds[led].HttpAPIClient.PostJsonAsync<SonoffConfigurationInfo>("switch", new
             {
@@ -65,7 +65,6 @@ namespace OnlineStatusLight.Application.Services.LightServices
                 }
             });
             response.HttpResponse.EnsureSuccessStatusCode();
-
             Leds[led].Status = SonoffLedStatus.Off;
         }
 
@@ -82,7 +81,7 @@ namespace OnlineStatusLight.Application.Services.LightServices
                 return;
             }
 
-            _logger.LogInformation($"Switching {led} to ON.");
+            _logger.LogInformation("Switching {Led} to ON.", led);
 
             var response = await Leds[led].HttpAPIClient.PostJsonAsync<SonoffConfigurationInfo>("switch", new
             {
@@ -94,7 +93,6 @@ namespace OnlineStatusLight.Application.Services.LightServices
                 }
             });
             response.HttpResponse.EnsureSuccessStatusCode();
-
             Leds[led].Status = SonoffLedStatus.On;
         }
 
@@ -110,7 +108,7 @@ namespace OnlineStatusLight.Application.Services.LightServices
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, $"Error switching off {led.Key}.");
+                    _logger.LogError(ex, "Error switching off {LedKey}.", led.Key);
                 }
             }
         }
@@ -173,16 +171,16 @@ namespace OnlineStatusLight.Application.Services.LightServices
             }
         }
 
-        public void Start()
+        public async Task Start()
         {
-            _logger.LogInformation($"Starting SonoffBasicR3Service");
-            SwitchOffAll(null, true).GetAwaiter().GetResult();
+            _logger.LogInformation("Starting SonoffBasicR3Service");
+            await SwitchOffAll(null, true);
         }
 
-        public void End()
+        public async Task End()
         {
-            _logger.LogInformation($"Ending SonoffBasicR3Service");
-            SwitchOffAll(null, true).GetAwaiter().GetResult();
+            _logger.LogInformation("Ending SonoffBasicR3Service");
+            await SwitchOffAll(null, true);
         }
     }
 }

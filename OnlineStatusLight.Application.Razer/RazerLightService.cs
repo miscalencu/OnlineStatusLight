@@ -11,26 +11,28 @@ namespace OnlineStatusLight.Application.Razer
 {
     public class RazerLightService : ILightService
     {
-        private ILogger<RazerLightService> _logger;
-        private bool _headSetOnly;
+        private readonly ILogger<RazerLightService> _logger;
+        private readonly bool _headSetOnly;
         private IChroma? _chroma;
 
         public RazerLightService(
-            IConfiguration configuration, 
+            IConfiguration configuration,
             IOptions<LightRazerConfiguration> razerConfiguration,
             ILogger<RazerLightService> logger)
         {
             _logger = logger;
 
-            if(razerConfiguration == null)
+            if (razerConfiguration == null)
                 throw new ConfigurationException("Razer configuration is missing");
 
             _headSetOnly = razerConfiguration.Value.HeadsetOnly;
         }
-        public async void End()
+
+        public async Task End()
         {
             _logger.LogInformation("End RazerLightService");
-            if(_chroma != null) {
+            if (_chroma != null)
+            {
                 await _chroma.UninitializeAsync();
             }
         }
@@ -42,37 +44,44 @@ namespace OnlineStatusLight.Application.Razer
                 case MicrosoftTeamsStatus.Available:
                     await SetTargetedDeviceColor(Colore.Data.Color.Green);
                     break;
+
                 case MicrosoftTeamsStatus.Away:
                     await SetTargetedDeviceColor(Colore.Data.Color.Yellow);
                     break;
+
                 case MicrosoftTeamsStatus.OutOfOffice:
                     await SetTargetedDeviceColor(Colore.Data.Color.Purple);
                     break;
+
                 case MicrosoftTeamsStatus.Busy:
                 case MicrosoftTeamsStatus.DoNotDisturb:
                 case MicrosoftTeamsStatus.InAMeeting:
                     await SetTargetedDeviceColor(Colore.Data.Color.Red);
                     break;
+
                 default:
-                    _logger.LogInformation($"Received: {status}. Setting color to off...");
+                    _logger.LogInformation("Received: {Status}. Setting color to off...", status);
                     await SetTargetedDeviceColor(Colore.Data.Color.Black);
                     break;
             }
         }
 
-        private async Task SetTargetedDeviceColor(Colore.Data.Color color) 
+        private async Task SetTargetedDeviceColor(Colore.Data.Color color)
         {
-            if(_chroma != null) 
+            if (_chroma != null)
             {
-                if(_headSetOnly) {
+                if (_headSetOnly)
+                {
                     await _chroma.Headset.SetStaticAsync(color);
-                } else {
+                }
+                else
+                {
                     await _chroma.SetAllAsync(color);
                 }
             }
         }
 
-        public async void Start()
+        public async Task Start()
         {
             _logger.LogInformation("Start RazerLightService");
             _chroma = await ColoreProvider.CreateNativeAsync();

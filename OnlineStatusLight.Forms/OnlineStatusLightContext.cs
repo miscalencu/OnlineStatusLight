@@ -26,7 +26,7 @@ namespace OnlineStatusLight.Forms
             this._contextMenu.Items.AddRange(new ToolStripMenuItem[] { this._menuItem });
 
             // Initialize menuItem
-            this._menuItem.ImageIndex = 0;
+            //this._menuItem.ImageIndex = 0;
             this._menuItem.Text = "Exit";
             this._menuItem.Click += new EventHandler(this.MenuItem_Click);
 
@@ -56,7 +56,7 @@ namespace OnlineStatusLight.Forms
 
         private void SystemEvents_SessionEnding(object sender, SessionEndingEventArgs e)
         {
-            _sync.Dispose();
+            _ = _sync.StopAsync(CancellationToken.None);
         }
 
         private void StateChanged(object? sender, MicrosoftTeamsStatus status)
@@ -68,8 +68,7 @@ namespace OnlineStatusLight.Forms
         {
             // Clean up any components being used.
             if (disposing)
-                if (_components != null)
-                    _components.Dispose();
+                _components?.Dispose();
 
             base.Dispose(disposing);
         }
@@ -92,14 +91,23 @@ namespace OnlineStatusLight.Forms
             this.MainForm.Activate();
         }
 
-        private void MenuItem_Click(object Sender, EventArgs e)
+        private void MenuItem_Click(object? Sender, EventArgs e)
         {
-            // Hide tray icon, otherwise it will remain shown until user mouses over it
-            _notifyIcon.Visible = false;
-            _sync.Dispose();
+            try
+            {
+                // Hide tray icon, otherwise it will remain shown until user mouses over it
+                _notifyIcon.Visible = false;
+                // turn off lights
+                _ = _sync.StopAsync(CancellationToken.None);
+            }
+            finally
+            {
+                // give some time to turn off lights
+                Thread.Sleep(5000);
 
-            app.Application.Exit();
-            Environment.Exit(1);
+                app.Application.Exit();
+                Environment.Exit(1);
+            }
         }
     }
 }
