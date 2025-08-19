@@ -18,8 +18,10 @@ Implementation for MS Teams which reads the current status by using the Windows 
 	"type": "windowsAutomation",
 	"windowsAutomation": {
 	  "interval": 5,
-      "windowName": "Microsoft Teams",
-      "statusPattern": "Your profile, status @status"
+	  "processName": "ms-teams",
+	  "restartArgument": "--minimized",
+	  "processRestart": true,
+	  "statusPattern": "Your profile, status @status"
 	}
   }
 }
