@@ -143,6 +143,19 @@ namespace OnlineStatusLight.Source.WindowsAutomation
                     newStatus = MicrosoftTeamsStatus.DoNotDisturb;
                     break;
 
+                case "Away":
+                    newStatus = MicrosoftTeamsStatus.Away;
+                    break;
+
+                case "Unknown":
+                    newStatus = MicrosoftTeamsStatus.Unknown;
+                    break;
+
+                case "In a meeting":
+                case "In a call":
+                    newStatus = MicrosoftTeamsStatus.InAMeeting;
+                    break;
+
                 default:
                     _logger.LogWarning("WindowsAutomation availability unknown: {PresenceStatus}", presenceStatus);
                     newStatus = MicrosoftTeamsStatus.Unknown;

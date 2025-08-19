@@ -157,6 +157,7 @@ namespace OnlineStatusLight.Application.Services.LightServices
                     break;
 
                 case MicrosoftTeamsStatus.Busy:
+                case MicrosoftTeamsStatus.InAMeeting:
                     await SwitchOn(SonoffLedType.Red);
                     break;
 
