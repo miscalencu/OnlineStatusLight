@@ -34,89 +34,87 @@ namespace OnlineStatusLight.Source.WindowsAutomation
         public async Task<MicrosoftTeamsStatus> GetCurrentStatus(CancellationToken cancellationToken)
         {
             var presenceStatus = "Unknown";
+            var windowName = _windowsAutomationConfiguration.WindowName ?? "Teams";
             var statusPattern = _windowsAutomationConfiguration.StatusPattern?.Replace("@status", "(.+)") ?? "";
             var restartProcess = _windowsAutomationConfiguration.RestartProcess;
             var restartArgument = _windowsAutomationConfiguration.RestartArgument;
 
+            AutomationElement? teamsWindow = null;
+            AutomationElement? statusButton = null;
+
             try
             {
                 var rootElement = await Task.Run(() => AutomationElement.RootElement, cancellationToken);
-                AutomationElement? teamsWindow = null;
-                var processes = Process.GetProcessesByName(_windowsAutomationConfiguration.ProcessName);
-                foreach (var process in processes)
+
+                // Get all top-level windows
+                var windows = await Task.Run(() =>
                 {
-                    // if window is not minimized, we can use its MainWindowHandle
-                    if (process.MainWindowHandle != IntPtr.Zero)
-                    {
-                        teamsWindow = AutomationElement.FromHandle(process.MainWindowHandle);
-                        if (teamsWindow != null)
-                            break;
-                    }
-                    // if window is minimized, we can use its MainModule.FileName and start the process minimized
-                    else
-                    {
-                        if (restartProcess)
-                        {
-                            string? teamsPath = process?.MainModule?.FileName;
-                            if (teamsPath != null)
-                            {
-                                var startInfo = new ProcessStartInfo
-                                {
-                                    FileName = teamsPath,
-                                    WindowStyle = ProcessWindowStyle.Minimized,
-                                    UseShellExecute = true,
-                                    Arguments = restartArgument
-                                };
-
-                                try
-                                {
-                                    _logger.LogInformation("Restarting Teams process");
-                                    Process.Start(startInfo);
-                                }
-                                catch (Exception ex)
-                                {
-                                    _logger.LogError(ex, "Error restarting Teams process: {Message}", ex.Message);
-                                }
-                            }
-                        }
-
-                        return _lastStatus;
-                    }
-                }
-
-                if (teamsWindow == null)
-                    return MicrosoftTeamsStatus.Unknown;
-
-                // Look for the presence status element within the Teams window
-                var presenceElements = await Task.Run(() =>
-                {
-                    var presenceCondition = new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Button);
-                    return teamsWindow.FindAll(TreeScope.Descendants, presenceCondition);
+                    var windowCondition = new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Window);
+                    return rootElement.FindAll(TreeScope.Children, windowCondition);
                 }, cancellationToken);
 
-                foreach (AutomationElement element in presenceElements)
+                // Find the Teams window and its status button
+                foreach (AutomationElement window in windows)
                 {
-                    // look for the string: "Your profile, status "
-                    // and then look at the next words, which is my current status.
-                    if (!string.IsNullOrEmpty(element.Current.Name))
-                    {
-                        var match = Regex.Match(element.Current.Name, statusPattern);
-                        if (match.Success)
-                        {
-                            _logger.LogInformation("Presence element name found: {ElementCurrentName}", element.Current.Name);
+                    if (!window.Current.Name.Contains(windowName))
+                        continue;
 
-                            // Let's grab the status by looking at everything after "displayed as ", removing the trailing ".",
-                            // and setting it to lowercase. I set it to lowercase because that is how I have my ESP32-C3
-                            // set up to read the data that this C# app sends to it.
-                            presenceStatus = match.Groups[1].Value.Trim();
-                            break;
-                        }
+                    var buttons = window
+                        .FindAll(TreeScope.Descendants, new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Button))
+                        .Cast<AutomationElement>()
+                        .ToList();
+
+                    statusButton = buttons
+                        .Where(_ => _.Current.Name != null && Regex.Match(_.Current.Name, statusPattern).Success)
+                        .SingleOrDefault();
+
+                    if (statusButton != null)
+                    {
+                        teamsWindow = window;
+                        break;
                     }
                 }
-            }
-            catch (OperationCanceledException)
-            {
-                // Operation was cancelled
+
+                // if Teams is not running, try to restart it
+                if (teamsWindow == null && restartProcess)
+                {
+                    var processes = Process.GetProcessesByName(_windowsAutomationConfiguration.ProcessName);
+                    foreach (var process in processes)
+                    {
+                        string? teamsPath = process?.MainModule?.FileName;
+                        if (teamsPath != null)
+                        {
+                            var startInfo = new ProcessStartInfo
+                            {
+                                FileName = teamsPath,
+                                WindowStyle = ProcessWindowStyle.Minimized,
+                                UseShellExecute = true,
+                                Arguments = restartArgument
+                            };
+
+                            try
+                            {
+                                _logger.LogInformation("Restarting Teams process");
+                                Process.Start(startInfo);
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError(ex, "Error restarting Teams process: {Message}", ex.Message);
+                            }
+                        }
+                    }
+                    return _lastStatus;
+                }
+
+                if (teamsWindow == null || statusButton == null)
+                    return MicrosoftTeamsStatus.Unknown;
+
+                var match = Regex.Match(statusButton.Current.Name, statusPattern);
+                if (match.Success)
+                {
+                    _logger.LogInformation("Presence element name found: {ElementCurrentName}", statusButton.Current.Name);
+                    presenceStatus = match.Groups[1].Value.Trim();
+                }
             }
             catch (Exception ex)
             {

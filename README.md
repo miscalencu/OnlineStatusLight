@@ -18,6 +18,7 @@ Implementation for MS Teams which reads the current status by using the Windows 
 	"type": "windowsAutomation",
 	"windowsAutomation": {
 	  "interval": 5,
+      "windowName": "Microsoft Teams",
 	  "processName": "ms-teams",
 	  "restartArgument": "--minimized",
 	  "processRestart": true,

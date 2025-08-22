@@ -35,7 +35,7 @@ namespace OnlineStatusLight.Application.Services
                 _logger.LogError("Error starting light service.");
             }
 
-            _timer = new Timer(async _ => await Sync(cancellationToken), null, TimeSpan.Zero, TimeSpan.FromSeconds(_microsoftTeamsService.PoolingInterval));
+            _timer = new Timer(async _ => await Sync(cancellationToken), null, TimeSpan.Zero, Timeout.InfiniteTimeSpan);
         }
 
         public async Task Sync(CancellationToken cancellationToken)
@@ -45,6 +45,9 @@ namespace OnlineStatusLight.Application.Services
             try
             {
                 await _lightService.SetState(status);
+
+                if (!cancellationToken.IsCancellationRequested)
+                    _timer.Change(TimeSpan.FromSeconds(_microsoftTeamsService.PoolingInterval), Timeout.InfiniteTimeSpan);
             }
             catch (Exception)
             {
