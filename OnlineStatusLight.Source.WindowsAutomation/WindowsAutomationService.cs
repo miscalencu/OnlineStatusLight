@@ -59,14 +59,21 @@ namespace OnlineStatusLight.Source.WindowsAutomation
                     if (!window.Current.Name.Contains(windowName))
                         continue;
 
-                    var buttons = window
-                        .FindAll(TreeScope.Descendants, new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Button))
-                        .Cast<AutomationElement>()
-                        .ToList();
+                    try
+                    {
+                        var buttons = window
+                            .FindAll(TreeScope.Descendants, new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Button))
+                            .Cast<AutomationElement>()
+                            .ToList();
 
-                    statusButton = buttons
-                        .Where(_ => _.Current.Name != null && Regex.Match(_.Current.Name, statusPattern).Success)
-                        .SingleOrDefault();
+                        statusButton = buttons
+                            .Where(_ => _.Current.Name != null && Regex.Match(_.Current.Name, statusPattern).Success)
+                            .SingleOrDefault();
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error finding presence button: {Message}", ex.Message);
+                    }
 
                     if (statusButton != null)
                     {
